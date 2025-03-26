@@ -194,6 +194,18 @@ public class ConnectorConfigValidatorTest {
   }
 
   @Test
+  public void testRegexTopic() {
+    Map<String, String> config = getConfig();
+    config.put(TOPICS_TABLES_MAP, "^.+\\..+\\.topic1$:topic1");
+  }
+
+  @Test
+  public void testRegexTable() {
+    Map<String, String> config = getConfig();
+    config.put(TOPICS_TABLES_MAP, "test\\.public\\.([^.]+):$1");
+  }
+
+  @Test
   public void testDuplicatedTopic() {
     Map<String, String> config = getConfig();
     config.put(TOPICS_TABLES_MAP, "topic1:table1,topic1:table2");

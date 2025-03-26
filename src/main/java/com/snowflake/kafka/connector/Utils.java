@@ -527,16 +527,24 @@ public class Utils {
       return GeneratedName.fromMap(topic2table.get(topic));
     }
 
-    // try matching regex tables
+    // Try regex matches with replacement
     for (String regexTopic : topic2table.keySet()) {
-      if (topic.matches(regexTopic)) {
-        return GeneratedName.fromMap(topic2table.get(regexTopic));
+      Pattern pattern = Pattern.compile(regexTopic);
+      Matcher matcher = pattern.matcher(topic);
+
+      if (matcher.matches()) {
+        String template = topic2table.get(regexTopic);
+        String substituted = matcher.replaceAll(template);
+
+        if (!Utils.isValidSnowflakeObjectIdentifier(substituted)) {
+          throw new IllegalArgumentException("Invalid generated Snowflake table name from topic: " + substituted);
+        }
+
+        return GeneratedName.fromMap(substituted);
       }
     }
 
-    if (Utils.isValidSnowflakeObjectIdentifier(topic)) {
-      return GeneratedName.generated(topic);
-    }
+    // Fallback: sanitize topic name into valid Snowflake identifier
     int hash = Math.abs(topic.hashCode());
 
     StringBuilder result = new StringBuilder();
@@ -571,7 +579,7 @@ public class Utils {
     Map<String, String> topic2Table = new HashMap<>();
     boolean isInvalid = false;
     for (String str : input.split(",")) {
-      String[] tt = str.split(":");
+      String[] tt = str.split(":", 2);
 
       if (tt.length != 2 || tt[0].trim().isEmpty() || tt[1].trim().isEmpty()) {
         LOGGER.error(
@@ -584,11 +592,18 @@ public class Utils {
 
       if (!isValidSnowflakeTableName(table)) {
         LOGGER.error(
-            "table name {} should have at least 2 "
-                + "characters, start with _a-zA-Z, and only contains "
-                + "_$a-zA-z0-9",
-            table);
-        isInvalid = true;
+                "table name {} should have at least 2 "
+                        + "characters, start with _a-zA-Z, and only contains "
+                        + "_$a-zA-z0-9",
+                table);
+
+        Pattern pattern = Pattern.compile("^\\$\\w+$");
+        Matcher matcher = pattern.matcher(table);
+        if (!matcher.matches()) {
+          LOGGER.error("Invalid table regex: {}", table);
+          isInvalid = true;
+          break;
+        }
       }
 
       if (topic2Table.containsKey(topic)) {

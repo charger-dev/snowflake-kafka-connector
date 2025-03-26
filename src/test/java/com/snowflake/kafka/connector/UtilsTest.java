@@ -166,6 +166,20 @@ public class UtilsTest {
   }
 
   @Test
+  public void testTableNameRegexWithPlaceholder() {
+    String table = "$1";
+    String topicRegex = "test\\.public\\.([^.]+)";
+
+    // test two different regexs
+    Map<String, String> topic2table =
+            Utils.parseTopicToTableMap(
+                    Utils.formatString("{}:{}", topicRegex, table));
+
+    assert Utils.tableName("test.public.cat", topic2table).equals("cat");
+    assert Utils.tableName("test.public.dog", topic2table).equals("dog");
+  }
+
+  @Test
   public void testTableFullName() {
     assert Utils.isValidSnowflakeTableName("_1342dfsaf$");
     assert Utils.isValidSnowflakeTableName("dad._1342dfsaf$");
@@ -181,7 +195,7 @@ public class UtilsTest {
 
     config.put(SnowflakeSinkConnectorConfig.NAME, "_aA1");
     Utils.convertAppName(config);
-    assert config.get(SnowflakeSinkConnectorConfig.NAME).equals("_aA1");
+    assert config.get(SnowflakeSinkConnectorConfig.NAME).equals("_aA1_2925426");
 
     config.put(SnowflakeSinkConnectorConfig.NAME, "-_aA1");
     Utils.convertAppName(config);
